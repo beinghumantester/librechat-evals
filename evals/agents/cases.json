@@ -1,0 +1,125 @@
+[
+  {
+    "id": "AGT-001",
+    "category": "tool_selection",
+    "description": "Agent should call web_search for a question about current/external information rather than guessing.",
+    "input": "What is LibreChat, based on current public information?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
+    "expectedTool": "web_search",
+    "forbiddenTools": ["code_interpreter"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "AGT-002",
+    "category": "tool_selection",
+    "description": "Same category, but the mock's tool trace only NARRATES tool use in text (no structured field) — proves the grade-C path is classified correctly and still lets a selection check run off the narration regex.",
+    "input": "What is LibreChat, based on current public information?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "narrated_only" },
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "AGT-003",
+    "category": "tool_arguments",
+    "description": "Agent should call calculator with the correct arithmetic expression, not just the right tool.",
+    "input": "Calculate 2345 * 6789.",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
+    "expectedTool": "calculator",
+    "expectedArgumentsSchema": { "expression": "string" },
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "AGT-004",
+    "category": "tool_arguments",
+    "description": "Negative control: asks the grader to check for an argument key the mock never sends, proving the tier actually fails a bad case rather than passing everything.",
+    "input": "Calculate 2345 * 6789.",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
+    "expectedTool": "calculator",
+    "expectedArgumentsSchema": { "left_operand": "number" },
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "AGT-005",
+    "category": "tool_result_grounding",
+    "description": "Final answer should reflect the actual file_search result, not a disconnected claim.",
+    "input": "What does our refund policy say about timing?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
+    "expectedTool": "file_search",
+    "evaluationMethod": "deterministic",
+    "severity": "high"
+  },
+  {
+    "id": "AGT-006",
+    "category": "tool_result_grounding",
+    "description": "Negative control: forces an answer that ignores the actual tool result entirely, proving the grounding check catches ungrounded output.",
+    "input": "What does our refund policy say about timing?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "structured",
+      "mockForceAnswer": "Refunds are processed instantly, no waiting period."
+    },
+    "expectedTool": "file_search",
+    "evaluationMethod": "deterministic",
+    "severity": "high"
+  },
+  {
+    "id": "AGT-007",
+    "category": "tool_failure_recovery",
+    "description": "web_search fails (HTTP 500 from the tool backend). Agent should say so honestly, not fabricate results. Task fails; agent behavior should still pass.",
+    "input": "What's the latest LibreChat release version?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured", "mockToolFailure": "http500" },
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "severity": "high"
+  },
+  {
+    "id": "AGT-008",
+    "category": "tool_failure_recovery",
+    "description": "Negative control: same tool failure, but the agent fabricates a confident answer anyway — proves the recovery check catches dishonest failure handling.",
+    "input": "What's the latest LibreChat release version?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "structured",
+      "mockToolFailure": "timeout",
+      "mockSimulateBadRecovery": true
+    },
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "severity": "high"
+  },
+  {
+    "id": "AGT-009",
+    "category": "termination",
+    "description": "A single successful tool call — no looping expected.",
+    "input": "Search the web for LibreChat.",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "AGT-010",
+    "category": "termination",
+    "description": "Negative control: the mock simulates the same tool called three times with identical arguments — proves the loop detector actually fires.",
+    "input": "Search the web for LibreChat.",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured", "mockLoopTool": true },
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "AGT-011",
+    "category": "tool_selection",
+    "description": "Same tool-selection question, but routed through the NATIVE SSE flow instead of the OpenAI-compatible endpoint. This is Phase 0's central experiment made executable: the documented SSE event types are content/done/sync/error only, so this case should come back BLOCKED, not a false PASS — proving the harness refuses to grade past evidence it doesn't actually have.",
+    "input": "What is LibreChat, based on current public information?",
+    "precondition": { "endpoint": "agents_chat_sse" },
+    "evidenceGradeRequired": ["A", "B"],
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "severity": "high"
+  }
+]

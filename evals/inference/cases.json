@@ -1,0 +1,315 @@
+[
+  {
+    "id": "INF-001",
+    "category": "instruction_following",
+    "description": "Response must stay under 20 words.",
+    "input": "Describe LibreChat in one short sentence.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat is an open-source, self-hostable AI chat platform supporting many model providers."
+    },
+    "constraints": [{ "type": "max_words", "value": 20 }],
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "INF-002",
+    "category": "instruction_following",
+    "description": "Negative control: forces a response that blows past the word limit, proving the constraint check fails it.",
+    "input": "Describe LibreChat in one short sentence.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat is an open-source, self-hostable, highly configurable AI chat platform that supports a very large number of different model providers, agent frameworks, retrieval-augmented generation pipelines, and Model Context Protocol tool integrations for teams that want full control over their own deployment."
+    },
+    "constraints": [{ "type": "max_words", "value": 20 }],
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "INF-003",
+    "category": "instruction_following",
+    "description": "Response must contain exactly 3 bullet points and no table.",
+    "input": "List three LibreChat features as bullets.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "- Agents\n- MCP support\n- Web search"
+    },
+    "constraints": [{ "type": "exact_bullets", "value": 3 }, { "type": "no_table" }],
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "INF-004",
+    "category": "constraint_satisfaction",
+    "description": "Two independent constraints checked together (word count AND a forbidden word) — per Phase 2 §5, each is measured on its own, not folded into one pass/fail score. Distinct from instruction_following above: this is measurable per-constraint compliance, not qualitative adherence to a system/user instruction.",
+    "input": "Summarize LibreChat's tool ecosystem in under 15 words, and don't use the word 'various'.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat supports code execution, file search, web search, MCP, and image generation tools."
+    },
+    "constraints": [{ "type": "max_words", "value": 15 }, { "type": "must_not_include", "value": "various" }],
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "INF-005",
+    "category": "constraint_satisfaction",
+    "description": "Negative control: violates BOTH constraints at once — proves each constraint is reported independently, not just 'failed overall'.",
+    "input": "Summarize LibreChat's tool ecosystem in under 15 words, and don't use the word 'various'.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat supports various tools including code execution, file search, web search capabilities, Model Context Protocol integrations, and several image generation backends for different providers."
+    },
+    "constraints": [{ "type": "max_words", "value": 15 }, { "type": "must_not_include", "value": "various" }],
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  },
+  {
+    "id": "INF-006",
+    "category": "constraint_satisfaction",
+    "description": "Exact bullet count plus a forbidden overclaim word.",
+    "input": "List exactly 2 bullet points about LibreChat's security posture, without claiming it's 'unhackable'.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "- Supports scoped, per-server MCP credentials\n- Treats retrieved tool content as untrusted rather than as instructions"
+    },
+    "constraints": [{ "type": "exact_bullets", "value": 2 }, { "type": "must_not_include", "value": "unhackable" }],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-007",
+    "category": "factual_correctness",
+    "description": "Deterministic exact-match style check — no judge needed for a simple factual substring.",
+    "input": "What company originally created LibreChat as a fork? (name the project it forked from)",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "LibreChat began as a fork of chatgpt-clone." },
+    "expectedAnswerContains": ["chatgpt-clone"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-008",
+    "category": "factual_correctness",
+    "description": "Negative control: forces a wrong answer, proving the deterministic check fails it rather than passing everything.",
+    "input": "What company originally created LibreChat as a fork? (name the project it forked from)",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "LibreChat was built entirely from scratch, not a fork of anything." },
+    "expectedAnswerContains": ["chatgpt-clone"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-009",
+    "category": "numerical_accuracy",
+    "description": "Multi-step word problem the model must compute itself (no calculator tool involved) — checked by extracting the number from the answer and comparing to the code-computed correct value, per Phase 2 §7: never an LLM judge for arithmetic.",
+    "input": "A warehouse had 320 boxes. They shipped 3/8 of them on Monday and 1/4 of the remaining boxes on Tuesday. How many boxes are left?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "320 - 120 shipped Monday = 200 remaining. 200 - 50 shipped Tuesday = 150 boxes are left."
+    },
+    "expectedNumericValue": 150,
+    "numericTolerance": 0,
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-010",
+    "category": "numerical_accuracy",
+    "description": "Negative control: same problem, wrong final number — proves the extractor-and-compare check actually fails a wrong answer instead of pattern-matching loosely.",
+    "input": "A warehouse had 320 boxes. They shipped 3/8 of them on Monday and 1/4 of the remaining boxes on Tuesday. How many boxes are left?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "After both shipments, 200 boxes are left." },
+    "expectedNumericValue": 150,
+    "numericTolerance": 0,
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-011",
+    "category": "numerical_accuracy",
+    "description": "A second, independent arithmetic scenario (rate/time/distance) to avoid over-fitting the check to one problem shape.",
+    "input": "A delivery van travels at 60 mph for 2.5 hours, then at 80 mph for 1.5 hours. What total distance does it cover, in miles?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "60 * 2.5 = 150 miles, plus 80 * 1.5 = 120 miles, for a total of 270 miles."
+    },
+    "expectedNumericValue": 270,
+    "numericTolerance": 0,
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-012",
+    "category": "numerical_accuracy",
+    "description": "Negative control for the rate/time/distance scenario.",
+    "input": "A delivery van travels at 60 mph for 2.5 hours, then at 80 mph for 1.5 hours. What total distance does it cover, in miles?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "The van covers a total of 300 miles." },
+    "expectedNumericValue": 270,
+    "numericTolerance": 0,
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-013",
+    "category": "hallucination",
+    "description": "Question references a fabricated LibreChat feature ('Quantum Sync Mode') that does not exist. Judge should FAIL a confident, invented-sounding answer.",
+    "input": "How do I configure LibreChat's Quantum Sync Mode for multi-region agent replication?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockHallucinate": true },
+    "evaluationMethod": "llm_judge",
+    "judgeExpectations": [
+      "The answer must not present fabricated configuration steps for a feature ('Quantum Sync Mode') that doesn't exist.",
+      "If the feature is not real, the answer should say so or express clear uncertainty rather than inventing specifics."
+    ],
+    "severity": "high"
+  },
+  {
+    "id": "INF-014",
+    "category": "hallucination",
+    "description": "Same fabricated-feature question, but the agent correctly declines to invent details. Judge should PASS.",
+    "input": "How do I configure LibreChat's Quantum Sync Mode for multi-region agent replication?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "I'm not aware of a LibreChat feature called 'Quantum Sync Mode' - it doesn't appear in the documentation I have. Could you double-check the name, or point me to where you saw it?"
+    },
+    "evaluationMethod": "llm_judge",
+    "judgeExpectations": [
+      "The answer must not present fabricated configuration steps for a feature that doesn't exist.",
+      "The answer should express appropriate uncertainty or say the feature isn't known."
+    ],
+    "severity": "high"
+  },
+  {
+    "id": "INF-015",
+    "category": "abstention",
+    "description": "Question has no answer in any available context. Agent should abstain rather than guess. Judge should PASS an honest abstention.",
+    "input": "Based only on the file I uploaded (which does not mention this at all), what was our Q3 2024 revenue in the APAC region?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "The document you uploaded doesn't contain APAC revenue figures for Q3 2024, so I can't answer that from the given context."
+    },
+    "evaluationMethod": "llm_judge",
+    "judgeExpectations": ["The answer must acknowledge that the requested information is not available in the given context, rather than providing a specific invented figure."],
+    "severity": "high"
+  },
+  {
+    "id": "INF-016",
+    "category": "abstention",
+    "description": "Negative control: same unanswerable question, agent guesses a specific figure instead of abstaining. Judge should FAIL this.",
+    "input": "Based only on the file I uploaded (which does not mention this at all), what was our Q3 2024 revenue in the APAC region?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "Q3 2024 APAC revenue was approximately $4.2M, up 12% quarter over quarter."
+    },
+    "evaluationMethod": "llm_judge",
+    "judgeExpectations": ["The answer must acknowledge that the requested information is not available in the given context, rather than providing a specific invented figure."],
+    "severity": "high"
+  },
+  {
+    "id": "INF-017",
+    "category": "consistency",
+    "description": "Two paraphrases of the same factual question should not produce contradictory tool decisions or claims.",
+    "input": "Does LibreChat support the Model Context Protocol?",
+    "pairedInput": "Is MCP something LibreChat can integrate with?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "Yes, LibreChat supports MCP servers, which can be configured via librechat.yaml or the UI." },
+    "evaluationMethod": "llm_judge",
+    "judgeExpectations": ["Answer A and Answer B should not contradict each other about whether LibreChat supports MCP."],
+    "severity": "medium"
+  },
+  {
+    "id": "INF-018",
+    "category": "long_context",
+    "description": "Needle-in-haystack: the target fact sits at the START of a multi-entry configuration log, with several distractor entries (same shape, different role/number) after it. Real long-context testing needs much bigger inputs against a real long-context-configured deployment — this proves the mechanism at small scale, not the final scale.",
+    "input": "Here is an excerpt from an internal agent-configuration log:\n\n1. support-agent: max_tokens=4000, temperature=0.3, tools=[file_search, web_search]\n2. billing-agent: max_tokens=8000, temperature=0.1, tools=[calculator]\n3. onboarding-agent: max_tokens=2000, temperature=0.5, tools=[]\n4. research-agent: max_tokens=16000, temperature=0.4, tools=[web_search, code_interpreter]\n5. compliance-agent: max_tokens=6000, temperature=0.0, tools=[file_search]\n6. escalation-agent: max_tokens=3000, temperature=0.2, tools=[web_search]\n\nAccording to this log, what is the max_tokens value configured for the support-agent role?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "According to the log, the support-agent role is configured with max_tokens=4000."
+    },
+    "needleKeywords": ["4000"],
+    "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-019",
+    "category": "long_context",
+    "description": "Same mechanism, needle placed in the MIDDLE of the log this time — the position most models handle worst ('lost in the middle').",
+    "input": "Here is an excerpt from an internal agent-configuration log:\n\n1. billing-agent: max_tokens=8000, temperature=0.1, tools=[calculator]\n2. onboarding-agent: max_tokens=2000, temperature=0.5, tools=[]\n3. support-agent: max_tokens=4000, temperature=0.3, tools=[file_search, web_search]\n4. research-agent: max_tokens=16000, temperature=0.4, tools=[web_search, code_interpreter]\n5. compliance-agent: max_tokens=6000, temperature=0.0, tools=[file_search]\n6. escalation-agent: max_tokens=3000, temperature=0.2, tools=[web_search]\n\nAccording to this log, what is the max_tokens value configured for the support-agent role?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "According to the log, the support-agent role is configured with max_tokens=4000."
+    },
+    "needleKeywords": ["4000"],
+    "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-020",
+    "category": "long_context",
+    "description": "Same mechanism, needle placed at the END of the log.",
+    "input": "Here is an excerpt from an internal agent-configuration log:\n\n1. billing-agent: max_tokens=8000, temperature=0.1, tools=[calculator]\n2. onboarding-agent: max_tokens=2000, temperature=0.5, tools=[]\n3. research-agent: max_tokens=16000, temperature=0.4, tools=[web_search, code_interpreter]\n4. compliance-agent: max_tokens=6000, temperature=0.0, tools=[file_search]\n5. escalation-agent: max_tokens=3000, temperature=0.2, tools=[web_search]\n6. support-agent: max_tokens=4000, temperature=0.3, tools=[file_search, web_search]\n\nAccording to this log, what is the max_tokens value configured for the support-agent role?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "According to the log, the support-agent role is configured with max_tokens=4000."
+    },
+    "needleKeywords": ["4000"],
+    "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-021",
+    "category": "long_context",
+    "description": "Negative control: the same middle-position log, but the answer reports a DISTRACTOR's number instead of the needle's — proves the check catches distractor confusion, not just a missing answer.",
+    "input": "Here is an excerpt from an internal agent-configuration log:\n\n1. billing-agent: max_tokens=8000, temperature=0.1, tools=[calculator]\n2. onboarding-agent: max_tokens=2000, temperature=0.5, tools=[]\n3. support-agent: max_tokens=4000, temperature=0.3, tools=[file_search, web_search]\n4. research-agent: max_tokens=16000, temperature=0.4, tools=[web_search, code_interpreter]\n5. compliance-agent: max_tokens=6000, temperature=0.0, tools=[file_search]\n6. escalation-agent: max_tokens=3000, temperature=0.2, tools=[web_search]\n\nAccording to this log, what is the max_tokens value configured for the support-agent role?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "According to the log, the support-agent role is configured with max_tokens=8000."
+    },
+    "needleKeywords": ["4000"],
+    "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-022",
+    "category": "factual_correctness",
+    "description": "Golden-regression demo: this case is graded against a captured reference answer (evals/golden/lc-origin-fork.json), not a rubric — proves the drift-detection mechanism works with a golden that ships already captured.",
+    "input": "In one sentence, what project did LibreChat originally fork from, and what happened to it since?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat originally began as a fork of the chatgpt-clone project before evolving into its own independent codebase."
+    },
+    "goldenId": "lc-origin-fork",
+    "evaluationMethod": "deterministic",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-023",
+    "category": "factual_correctness",
+    "description": "Golden-regression demo, part two: this goldenId has deliberately NOT been captured (no file in evals/golden/) — proves the harness reports BLOCKED, never a fabricated PASS, when a referenced golden doesn't exist yet. Capture it with: npm run capture-golden -- lc-mcp-support-summary INF-023",
+    "input": "In one sentence, summarize LibreChat's current MCP support.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat supports MCP servers configured via YAML, the UI, or Smithery, with dynamic tool-list updates."
+    },
+    "goldenId": "lc-mcp-support-summary",
+    "evaluationMethod": "deterministic",
+    "severity": "low"
+  }
+]

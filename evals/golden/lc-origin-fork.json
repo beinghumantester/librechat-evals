@@ -1,0 +1,7 @@
+{
+  "goldenId": "lc-origin-fork",
+  "caseId": "INF-022",
+  "capturedAt": "2026-09-25T00:00:00.000Z",
+  "baseUrl": "http://127.0.0.1:3080",
+  "answerText": "LibreChat originally began as a fork of the chatgpt-clone project before evolving into its own independent codebase."
+}
