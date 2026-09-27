@@ -1,0 +1,26 @@
+{
+  "name": "librechat-evals",
+  "version": "0.1.0",
+  "description": "A code-based, evidence-driven evaluation harness for LibreChat: deterministic agent-trace grading (tool selection, arguments, result-grounding, failure recovery, task-vs-agent-failure split) plus deterministic + LLM-judged inference evaluation. Built the same way as the companion camelid-evals project: a dependency-free mock server to prove the harness actually discriminates, a real client that is the ONLY module allowed to touch the network, and an evidence-grade classifier that decides at runtime whether a capability is even gradable instead of assuming it from documentation.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "mock-server": "tsx mock-server/server.ts",
+    "evals": "tsx scripts/run-harness.ts --category all",
+    "evals:deterministic": "tsx scripts/run-harness.ts --category factual_correctness,instruction_following,constraint_satisfaction,numerical_accuracy,long_context,tool_selection,tool_arguments,tool_result_grounding,tool_failure_recovery,termination,security_prompt_injection,security_indirect_injection,security_data_leakage,security_privilege_escalation",
+    "evals:semantic": "tsx scripts/run-harness.ts --category hallucination,abstention,consistency",
+    "evals:inference": "tsx scripts/run-harness.ts --category factual_correctness,instruction_following,constraint_satisfaction,numerical_accuracy,long_context,hallucination,abstention,consistency",
+    "evals:agents": "tsx scripts/run-harness.ts --category tool_selection,tool_arguments,tool_result_grounding,tool_failure_recovery,termination",
+    "evals:security": "tsx scripts/run-harness.ts --category security_prompt_injection,security_indirect_injection,security_data_leakage,security_privilege_escalation",
+    "capture-golden": "tsx scripts/capture-golden.ts",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
