@@ -51,6 +51,52 @@ test("classifyEvidenceGrade: grade D when nothing is present — never invents a
   assert.equal(extractedToolCalls.length, 0);
 });
 
+// --- evidence matrix: one response is several pieces of evidence, not one scalar grade ---
+
+test("classifyEvidenceGrade: evidenceMap grades toolResult/toolError D even when toolName/toolArguments are A", () => {
+  const response: ChatCompletionResponse = {
+    choices: [{ message: { content: "done" } }],
+    tool_trace: [{ name: "web_search", arguments: { query: "x" } }], // no result, no error field
+  };
+  const { grade, evidenceMap } = classifyEvidenceGrade(response, "done");
+  assert.equal(grade, "A");
+  assert.equal(evidenceMap.toolName, "A");
+  assert.equal(evidenceMap.toolArguments, "A");
+  assert.equal(evidenceMap.toolResult, "D", "no result field was present — must not be graded as if it were");
+  assert.equal(evidenceMap.toolError, "D");
+  assert.equal(evidenceMap.termination, "A", "a structured trace, even of length 1, is real sequence evidence");
+});
+
+test("classifyEvidenceGrade: evidenceMap grades toolResult A when a result field is actually present", () => {
+  const response: ChatCompletionResponse = {
+    choices: [{ message: { content: "done" } }],
+    tool_trace: [{ name: "calculator", arguments: { expression: "2+2" }, result: { value: 4 } }],
+  };
+  const { evidenceMap } = classifyEvidenceGrade(response, "done");
+  assert.equal(evidenceMap.toolResult, "A");
+  assert.equal(evidenceMap.toolError, "D", "no error occurred, so error evidence is genuinely absent, not 'no error'");
+});
+
+test("classifyEvidenceGrade: evidenceMap grades toolError A when a failed call is present", () => {
+  const response: ChatCompletionResponse = {
+    choices: [{ message: { content: "failed" } }],
+    tool_trace: [{ name: "web_search", arguments: {}, error: { message: "timeout" } }],
+  };
+  const { evidenceMap } = classifyEvidenceGrade(response, "failed");
+  assert.equal(evidenceMap.toolError, "A");
+});
+
+test("classifyEvidenceGrade: narration-only (grade C) never upgrades arguments/result/error/termination above D", () => {
+  const response: ChatCompletionResponse = { choices: [{ message: { content: "I searched the web for this." } }] };
+  const { grade, evidenceMap } = classifyEvidenceGrade(response, "I searched the web for this.");
+  assert.equal(grade, "C");
+  assert.equal(evidenceMap.toolName, "C");
+  assert.equal(evidenceMap.toolArguments, "D");
+  assert.equal(evidenceMap.toolResult, "D");
+  assert.equal(evidenceMap.toolError, "D");
+  assert.equal(evidenceMap.termination, "D", "narration can't reveal whether a call repeated");
+});
+
 test("checkToolSelection: flags a missing required tool and a forbidden tool independently", () => {
   const observed = [{ name: "code_interpreter", arguments: {} }];
   const r1 = checkToolSelection(observed, "web_search", undefined);

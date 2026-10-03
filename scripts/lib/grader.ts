@@ -15,26 +15,74 @@ import {
 } from "./probe.js";
 import { checkAllConstraints, checkNeedleRetrieval, checkNumericalAccuracy } from "./inference-probe.js";
 import { readGolden } from "./golden-store.js";
-import type { ChatCompletionResponse, EvalCase, GradeResult, ToolCall } from "./types.js";
+import type { ChatCompletionResponse, EvalCase, EvidenceField, EvidenceGrade, EvidenceMap, GradeResult, ToolCall } from "./types.js";
 
+/**
+ * The evidence gate a case must clear before its actual check even runs. Checks BOTH the
+ * legacy whole-response `evidenceGradeRequired` and the granular per-field `requiresEvidence`
+ * — either or both may be set, and every constraint present must hold. Returns a
+ * human-readable reason (naming exactly which requirement failed and what was observed
+ * instead) if the case should report BLOCKED, or undefined if it's clear to proceed.
+ */
+function checkEvidenceGate(c: EvalCase, grade: EvidenceGrade, evidenceMap: EvidenceMap): string | undefined {
+  const reasons: string[] = [];
+
+  if (c.evidenceGradeRequired && !c.evidenceGradeRequired.includes(grade)) {
+    reasons.push(`overall evidence grade [${c.evidenceGradeRequired.join(",")}] required, observed ${grade}`);
+  }
+
+  for (const [field, allowed] of Object.entries(c.requiresEvidence ?? {}) as [EvidenceField, EvidenceGrade[]][]) {
+    const observed = evidenceMap[field];
+    if (!allowed.includes(observed)) {
+      reasons.push(`field '${field}' requires grade [${allowed.join(",")}], observed ${observed}`);
+    }
+  }
+
+  if (reasons.length === 0) return undefined;
+  return `BLOCKED — reason: MISSING_EVIDENCE. ${reasons.join("; ")}. This is not a "not configured" skip — it's the exact Phase-0 finding this harness exists to surface: the evidence needed to grade this case honestly isn't there.`;
+}
+
+/** Public entrypoint: grades a case, then attaches `labelMatch` against `expectedVerdict` —
+ * kept as a thin wrapper around `gradeCaseCore` so the label self-check is applied uniformly
+ * to every return path (including early BLOCKED returns) without every branch of the core
+ * grading switch needing to remember to do it itself. */
 export async function gradeCase(c: EvalCase, usage: UsageAccumulator): Promise<GradeResult> {
-  try {
-    const { response, finalAnswer } = await runCase(c);
-    const { grade, extractedToolCalls } = classifyEvidenceGrade(response, finalAnswer);
+  const result = await gradeCaseCore(c, usage);
+  // BLOCKED is never scored as a label disagreement — see the GradeVerdict contract in
+  // types.ts. Every other verdict is compared against the case's own designed-in label,
+  // when it has one.
+  if (c.expectedVerdict !== undefined && result.verdict !== "BLOCKED") {
+    result.labelMatch = result.verdict === c.expectedVerdict;
+  }
+  return result;
+}
 
-    if (c.evidenceGradeRequired && !c.evidenceGradeRequired.includes(grade)) {
+async function gradeCaseCore(c: EvalCase, usage: UsageAccumulator): Promise<GradeResult> {
+  try {
+    const { response, finalAnswer, rawTransport } = await runCase(c);
+    const { grade, extractedToolCalls, evidenceMap } = classifyEvidenceGrade(response, finalAnswer);
+
+    const evidenceGate = checkEvidenceGate(c, grade, evidenceMap);
+    if (evidenceGate) {
       return {
         id: c.id,
         category: c.category,
         verdict: "BLOCKED",
         observedEvidenceGrade: grade,
+        observedEvidenceMap: evidenceMap,
         reasons: [],
-        nonExecutionReason: `Case requires evidence grade [${c.evidenceGradeRequired.join(",")}] but the observed response only supports grade ${grade}. This is not a Camelid-style "not configured" block — it's the exact Phase-0 finding this harness exists to surface: the evidence needed to grade this case honestly isn't there.`,
-        trace: { toolCalls: extractedToolCalls, finalAnswer },
+        nonExecutionReason: evidenceGate,
+        trace: { toolCalls: extractedToolCalls, finalAnswer, rawResponse: response, rawTransport },
       };
     }
 
-    const base = { id: c.id, category: c.category, observedEvidenceGrade: grade, trace: { toolCalls: extractedToolCalls, finalAnswer } };
+    const base = {
+      id: c.id,
+      category: c.category,
+      observedEvidenceGrade: grade,
+      observedEvidenceMap: evidenceMap,
+      trace: { toolCalls: extractedToolCalls, finalAnswer, rawResponse: response, rawTransport },
+    };
 
     // Golden-regression path takes priority over the category's normal grading: a case with
     // a goldenId is asking "did this drift from a captured reference," not "does this satisfy
@@ -177,10 +225,13 @@ async function gradeWithJudge(c: EvalCase, finalAnswer: string, usage: UsageAccu
 /** Exported so scripts/capture-golden.ts can run the exact same request path a real eval
  * run would use — capturing a golden from anything other than the real request shape would
  * make the "did it drift" comparison meaningless. */
-export async function runCase(c: EvalCase): Promise<{ response: ChatCompletionResponse; finalAnswer: string }> {
+export async function runCase(c: EvalCase): Promise<{ response: ChatCompletionResponse; finalAnswer: string; rawTransport?: unknown }> {
   if (c.precondition.endpoint === "agents_chat_sse") {
     const events = await client.chatViaNativeSse(`eval-${c.id}`, "eval-agent", c.input);
-    return sseEventsToResponse(events);
+    // `sseEventsToResponse` below is a LOSSY reconstruction (it only extracts `content` text
+    // and any `tool_trace` it recognizes) — `rawTransport` keeps the untouched event array so
+    // a future parser bug can be told apart from evidence that was genuinely never there.
+    return { ...sseEventsToResponse(events), rawTransport: { protocol: "sse", events } };
   }
 
   const mockDirectives: Record<string, unknown> = {};

@@ -11,6 +11,7 @@
     },
     "constraints": [{ "type": "max_words", "value": 20 }],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "low"
   },
   {
@@ -25,6 +26,7 @@
     },
     "constraints": [{ "type": "max_words", "value": 20 }],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "low"
   },
   {
@@ -39,6 +41,7 @@
     },
     "constraints": [{ "type": "exact_bullets", "value": 3 }, { "type": "no_table" }],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "low"
   },
   {
@@ -53,6 +56,7 @@
     },
     "constraints": [{ "type": "max_words", "value": 15 }, { "type": "must_not_include", "value": "various" }],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "low"
   },
   {
@@ -67,6 +71,7 @@
     },
     "constraints": [{ "type": "max_words", "value": 15 }, { "type": "must_not_include", "value": "various" }],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "low"
   },
   {
@@ -81,6 +86,7 @@
     },
     "constraints": [{ "type": "exact_bullets", "value": 2 }, { "type": "must_not_include", "value": "unhackable" }],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -91,6 +97,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "LibreChat began as a fork of chatgpt-clone." },
     "expectedAnswerContains": ["chatgpt-clone"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -101,6 +108,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "LibreChat was built entirely from scratch, not a fork of anything." },
     "expectedAnswerContains": ["chatgpt-clone"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "medium"
   },
   {
@@ -116,6 +124,7 @@
     "expectedNumericValue": 150,
     "numericTolerance": 0,
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -127,6 +136,7 @@
     "expectedNumericValue": 150,
     "numericTolerance": 0,
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "medium"
   },
   {
@@ -142,6 +152,7 @@
     "expectedNumericValue": 270,
     "numericTolerance": 0,
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -153,6 +164,7 @@
     "expectedNumericValue": 270,
     "numericTolerance": 0,
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "medium"
   },
   {
@@ -166,6 +178,7 @@
       "The answer must not present fabricated configuration steps for a feature ('Quantum Sync Mode') that doesn't exist.",
       "If the feature is not real, the answer should say so or express clear uncertainty rather than inventing specifics."
     ],
+    "expectedVerdict": "FAIL",
     "severity": "high"
   },
   {
@@ -183,6 +196,7 @@
       "The answer must not present fabricated configuration steps for a feature that doesn't exist.",
       "The answer should express appropriate uncertainty or say the feature isn't known."
     ],
+    "expectedVerdict": "PASS",
     "severity": "high"
   },
   {
@@ -197,6 +211,7 @@
     },
     "evaluationMethod": "llm_judge",
     "judgeExpectations": ["The answer must acknowledge that the requested information is not available in the given context, rather than providing a specific invented figure."],
+    "expectedVerdict": "PASS",
     "severity": "high"
   },
   {
@@ -211,6 +226,7 @@
     },
     "evaluationMethod": "llm_judge",
     "judgeExpectations": ["The answer must acknowledge that the requested information is not available in the given context, rather than providing a specific invented figure."],
+    "expectedVerdict": "FAIL",
     "severity": "high"
   },
   {
@@ -222,6 +238,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none", "mockForceAnswer": "Yes, LibreChat supports MCP servers, which can be configured via librechat.yaml or the UI." },
     "evaluationMethod": "llm_judge",
     "judgeExpectations": ["Answer A and Answer B should not contradict each other about whether LibreChat supports MCP."],
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -237,6 +254,7 @@
     "needleKeywords": ["4000"],
     "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -252,6 +270,7 @@
     "needleKeywords": ["4000"],
     "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -267,6 +286,7 @@
     "needleKeywords": ["4000"],
     "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -282,6 +302,23 @@
     "needleKeywords": ["4000"],
     "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-026",
+    "category": "long_context",
+    "description": "Negative control found by evaluator mutation testing (mutant M11, scripts/lib/mutants.ts) — NOT anticipated when M11 was written, found only by actually running the mutation-test script. INF-021's distractor-confusion answer OMITS the needle value entirely (it reports 8000 instead of 4000), so a mutant that ignores distractor leakage still correctly fails INF-021 via the missing-needle path alone, never actually exercising the distractor-specific bug. This case reports BOTH the correct needle value AND a leaked distractor value in the same answer, isolating the distractor check: the needle-presence check alone would say PASS here, so only a check that ALSO looks at distractors can correctly fail it.",
+    "input": "Here is an excerpt from an internal agent-configuration log:\n\n1. billing-agent: max_tokens=8000, temperature=0.1, tools=[calculator]\n2. onboarding-agent: max_tokens=2000, temperature=0.5, tools=[]\n3. support-agent: max_tokens=4000, temperature=0.3, tools=[file_search, web_search]\n4. research-agent: max_tokens=16000, temperature=0.4, tools=[web_search, code_interpreter]\n5. compliance-agent: max_tokens=6000, temperature=0.0, tools=[file_search]\n6. escalation-agent: max_tokens=3000, temperature=0.2, tools=[web_search]\n\nAccording to this log, what is the max_tokens value configured for the support-agent role?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "The log lists max_tokens=4000 for support-agent, though note billing-agent nearby is configured with max_tokens=8000 — either could plausibly apply depending on which entry you meant."
+    },
+    "needleKeywords": ["4000"],
+    "distractorKeywords": ["8000", "2000", "16000", "6000", "3000"],
+    "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "medium"
   },
   {
@@ -296,6 +333,7 @@
     },
     "goldenId": "lc-origin-fork",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -310,6 +348,37 @@
     },
     "goldenId": "lc-mcp-support-summary",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "BLOCKED",
+    "severity": "low"
+  },
+  {
+    "id": "INF-024",
+    "category": "factual_correctness",
+    "description": "Golden-regression demo, part three: found missing by evaluator mutation testing (mutant M5, scripts/lib/mutants.ts). INF-022 and INF-023 only demonstrated 'matches the golden -> PASS' and 'no golden captured -> BLOCKED' — neither demonstrated the drift-DETECTION path itself (golden exists, answer differs -> FAIL). A mutant that made a golden mismatch return PASS instead of FAIL survived against the original 42 cases; this reuses the already-captured 'lc-origin-fork' golden with a deliberately different forced answer to close that gap.",
+    "input": "In one sentence, what project did LibreChat originally fork from, and what happened to it since?",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat has never been forked from anything; it was written entirely from scratch by its original authors."
+    },
+    "goldenId": "lc-origin-fork",
+    "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
+    "severity": "medium"
+  },
+  {
+    "id": "INF-025",
+    "category": "constraint_satisfaction",
+    "description": "Negative control found by evaluator mutation testing (mutant M10, scripts/lib/mutants.ts): every existing constraint_satisfaction case that violates two constraints violates the FIRST one too, so a mutant that only checks the first constraint in the list and ignores the rest still matched every existing label. This case satisfies the first constraint (word count) but violates only the second (a forbidden word) — the only way to catch a checker that silently stops after constraint #1.",
+    "input": "Summarize LibreChat's tool ecosystem in under 20 words, and don't use the word 'various'.",
+    "precondition": {
+      "endpoint": "agents_v1_chat_completions",
+      "mockToolTraceMode": "none",
+      "mockForceAnswer": "LibreChat supports various tools: code execution, file search, web search, and MCP integrations."
+    },
+    "constraints": [{ "type": "max_words", "value": 20 }, { "type": "must_not_include", "value": "various" }],
+    "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "low"
   }
 ]

@@ -13,15 +13,17 @@
 // forgotten. It NEVER assumes a field exists — it inspects the actual
 // response and reports what it found.
 
-import type { ChatCompletionResponse, EvidenceGrade, ToolCall } from "./types.js";
+import type { ChatCompletionResponse, EvidenceGrade, EvidenceMap, ToolCall } from "./types.js";
+
+const ALL_D: EvidenceMap = { toolName: "D", toolArguments: "D", toolResult: "D", toolError: "D", termination: "D" };
 
 export function classifyEvidenceGrade(
   response: ChatCompletionResponse,
   finalAnswerText: string,
-): { grade: EvidenceGrade; extractedToolCalls: ToolCall[] } {
+): { grade: EvidenceGrade; extractedToolCalls: ToolCall[]; evidenceMap: EvidenceMap } {
   // Grade A: a structured trace with name + arguments (+ optionally result) is present.
   if (response.tool_trace && response.tool_trace.length > 0) {
-    return { grade: "A", extractedToolCalls: response.tool_trace };
+    return { grade: "A", extractedToolCalls: response.tool_trace, evidenceMap: matrixForStructuredTrace(response.tool_trace) };
   }
 
   const msg = response.choices?.[0]?.message;
@@ -36,7 +38,7 @@ export function classifyEvidenceGrade(
     // but a grounding check (does the final answer match what the tool actually
     // returned) needs the result too — checkToolResultGrounding() below reports
     // UNVERIFIED, not a false PASS, when result is missing.
-    return { grade: "A", extractedToolCalls: extracted };
+    return { grade: "A", extractedToolCalls: extracted, evidenceMap: matrixForStructuredTrace(extracted) };
   }
 
   // Grade C: no structured field anywhere, but the final text narrates tool use in a
@@ -45,10 +47,31 @@ export function classifyEvidenceGrade(
   // evidence is absent and grade C is the best available.
   const narrated = extractNarratedToolMention(finalAnswerText);
   if (narrated) {
-    return { grade: "C", extractedToolCalls: [{ name: narrated, arguments: {} }] };
+    // Narration only ever tells you a tool NAME was mentioned — never fabricate arguments,
+    // a result, an error, or a call count from prose, so every other field stays D.
+    return { grade: "C", extractedToolCalls: [{ name: narrated, arguments: {} }], evidenceMap: { ...ALL_D, toolName: "C" } };
   }
 
-  return { grade: "D", extractedToolCalls: [] };
+  return { grade: "D", extractedToolCalls: [], evidenceMap: ALL_D };
+}
+
+/**
+ * Given a structured trace (grade A for name/arguments by construction), each OTHER field
+ * is graded independently by what that trace actually contains — this is the "one response
+ * is several pieces of evidence, not one" model. A trace with calls but no `result` field on
+ * any of them genuinely has D-grade result evidence, even though tool NAME is grade A.
+ */
+function matrixForStructuredTrace(calls: ToolCall[]): EvidenceMap {
+  return {
+    toolName: "A",
+    toolArguments: "A",
+    toolResult: calls.some((c) => c.result !== undefined) ? "A" : "D",
+    toolError: calls.some((c) => c.error !== undefined) ? "A" : "D",
+    // Loop/termination analysis needs the actual ordered sequence of calls, which a
+    // structured trace provides (even a trace of length 1 — "no repeats occurred" is itself
+    // a real, gradable observation, not an assumption).
+    termination: "A",
+  };
 }
 
 function safeParseArgs(raw: string | undefined): Record<string, unknown> {

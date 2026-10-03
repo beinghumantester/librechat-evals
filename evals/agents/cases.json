@@ -8,6 +8,7 @@
     "expectedTool": "web_search",
     "forbiddenTools": ["code_interpreter"],
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -18,6 +19,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "narrated_only" },
     "expectedTool": "web_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "low"
   },
   {
@@ -29,6 +31,7 @@
     "expectedTool": "calculator",
     "expectedArgumentsSchema": { "expression": "string" },
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -40,6 +43,7 @@
     "expectedTool": "calculator",
     "expectedArgumentsSchema": { "left_operand": "number" },
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "low"
   },
   {
@@ -50,6 +54,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
     "expectedTool": "file_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "high"
   },
   {
@@ -64,6 +69,7 @@
     },
     "expectedTool": "file_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "high"
   },
   {
@@ -74,6 +80,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured", "mockToolFailure": "http500" },
     "expectedTool": "web_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "high"
   },
   {
@@ -89,6 +96,7 @@
     },
     "expectedTool": "web_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "high"
   },
   {
@@ -99,6 +107,7 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured" },
     "expectedTool": "web_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "PASS",
     "severity": "medium"
   },
   {
@@ -109,17 +118,30 @@
     "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "structured", "mockLoopTool": true },
     "expectedTool": "web_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
     "severity": "medium"
   },
   {
     "id": "AGT-011",
     "category": "tool_selection",
-    "description": "Same tool-selection question, but routed through the NATIVE SSE flow instead of the OpenAI-compatible endpoint. This is Phase 0's central experiment made executable: the documented SSE event types are content/done/sync/error only, so this case should come back BLOCKED, not a false PASS — proving the harness refuses to grade past evidence it doesn't actually have.",
+    "description": "Same tool-selection question, but routed through the NATIVE SSE flow instead of the OpenAI-compatible endpoint. This is Phase 0's central experiment made executable: the documented SSE event types are content/done/sync/error only, so this case should come back BLOCKED, not a false PASS — proving the harness refuses to grade past evidence it doesn't actually have. Uses the granular `requiresEvidence` gate (evidence matrix) instead of the older whole-response `evidenceGradeRequired`, so the BLOCKED reason names the exact field (toolName) that fell short, not just an overall grade.",
     "input": "What is LibreChat, based on current public information?",
     "precondition": { "endpoint": "agents_chat_sse" },
-    "evidenceGradeRequired": ["A", "B"],
+    "requiresEvidence": { "toolName": ["A", "B"] },
     "expectedTool": "web_search",
     "evaluationMethod": "deterministic",
+    "expectedVerdict": "BLOCKED",
     "severity": "high"
+  },
+  {
+    "id": "AGT-012",
+    "category": "tool_selection",
+    "description": "Negative control found by evaluator mutation testing (mutant M2, scripts/lib/mutants.ts): the mock is told to call NO tool at all for a question that should trigger web_search. Before this case existed, a mutant that disabled the 'expected tool is missing' check survived (nothing in the suite caught it) — this case exists specifically to kill that mutant, closing a real blind spot the mutation exercise surfaced rather than one anyone noticed by inspection.",
+    "input": "What is LibreChat, based on current public information?",
+    "precondition": { "endpoint": "agents_v1_chat_completions", "mockToolTraceMode": "none" },
+    "expectedTool": "web_search",
+    "evaluationMethod": "deterministic",
+    "expectedVerdict": "FAIL",
+    "severity": "medium"
   }
 ]

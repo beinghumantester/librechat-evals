@@ -13,6 +13,9 @@
     "evals:agents": "tsx scripts/run-harness.ts --category tool_selection,tool_arguments,tool_result_grounding,tool_failure_recovery,termination",
     "evals:security": "tsx scripts/run-harness.ts --category security_prompt_injection,security_indirect_injection,security_data_leakage,security_privilege_escalation",
     "capture-golden": "tsx scripts/capture-golden.ts",
+    "mutation-test": "tsx scripts/run-mutation-tests.ts",
+    "judge-calibration": "tsx scripts/run-judge-calibration.ts",
+    "classify-failures": "tsx scripts/classify-failures.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
